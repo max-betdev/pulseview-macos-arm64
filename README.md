@@ -37,7 +37,7 @@ required**.
 
 - An Apple Silicon Mac (arm64) running macOS 11 or newer.
 - **Xcode Command Line Tools**: `xcode-select --install`
-- **Homebrew** (`/opt/homebrew`): https://brew.sh
+- **Homebrew** (`/opt/homebrew`): <https://brew.sh>
 
 `./00-prereqs.sh` installs every other dependency for you.
 
@@ -84,6 +84,7 @@ will warn that the developer can't be verified. Choose one:
 
 - **Finder:** right-click `PulseView.app` → **Open** → **Open**. (Only needed once.)
 - **Terminal:** clear the quarantine flag, then open normally:
+
   ```sh
   xattr -dr com.apple.quarantine /Applications/PulseView.app
   ```
@@ -111,6 +112,21 @@ PIN_COMMITS=1 ./build.sh
 With `PIN_COMMITS=1`, `build.sh` checks out the recorded commit for each repo
 instead of the latest `master`. Without it, the build tracks each project's
 default branch and refreshes `BUILT_COMMITS.txt` with whatever it built.
+
+## Continuous integration (GitHub Actions)
+
+`.github/workflows/build.yml` builds everything on a **native Apple Silicon
+runner** (`macos-14`) and uploads the `.dmg`:
+
+- Runs on pushes to `main`, on `v*` tags, and manually (Actions → Run workflow).
+- Steps are just `./00-prereqs.sh` → `./build.sh` → `./package.sh`, then it
+  verifies the binary is arm64 and the signature is valid.
+- The `.dmg` (plus `BUILT_COMMITS.txt`) is uploaded as a build artifact.
+- Pushing a tag like `v0.5.0` also creates a GitHub Release with the `.dmg`
+  attached.
+
+Note: macOS runner minutes bill at a higher rate on **private** repos, but are
+**free on public** repos — worth keeping in mind for a CI-heavy build like this.
 
 ## Progress and logs
 
@@ -157,9 +173,11 @@ build_pulseview_apple_silicon/
 
 - **Native arm64 only.** Every Mach-O in the bundle is arm64 (no Rosetta, no
   universal binary). Verify with:
+
   ```sh
   file PulseView.app/Contents/MacOS/pulseview.real
   ```
+
 - **Ad-hoc signing.** Enough to run locally and on other Apple Silicon Macs
   (with the one-time Gatekeeper step). Not notarized — distributing without any
   warning requires a paid Apple Developer ID and a notarization pass.
@@ -184,4 +202,5 @@ A few things that make this build different from the stock sigrok macOS script:
   (the last keeps the code signature valid at runtime).
 - The whole bundle is ad-hoc signed **after** all `install_name_tool` edits,
   because arm64 refuses to launch binaries with a broken/missing signature.
+
 ```

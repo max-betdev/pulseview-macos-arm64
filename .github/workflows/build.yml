@@ -1,0 +1,67 @@
+name: build-macos-arm64
+
+# Build the full sigrok stack + PulseView from source as native Apple Silicon
+# (arm64) on GitHub's macOS arm64 runners, and publish the PulseView .dmg.
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:      # allow manual runs from the Actions tab
+
+permissions:
+  contents: write         # needed to attach the .dmg to a release on tag builds
+
+jobs:
+  build:
+    name: Build PulseView (native arm64)
+    runs-on: macos-14     # Apple Silicon runner (macos-15 also works)
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runner info
+        run: |
+          uname -m
+          sw_vers
+          echo "CPUs: $(sysctl -n hw.ncpu)"
+
+      - name: Install prerequisites (Homebrew, native arm64)
+        run: ./00-prereqs.sh
+
+      - name: Build the sigrok stack + PulseView
+        run: ./build.sh
+
+      - name: Package PulseView.app + .dmg
+        run: ./package.sh
+
+      - name: Verify native arm64 + signature
+        run: |
+          file PulseView.app/Contents/MacOS/pulseview.real
+          lipo -archs PulseView.app/Contents/MacOS/pulseview.real
+          codesign --verify --strict --verbose=1 PulseView.app
+
+      - name: Identify the DMG
+        id: dmg
+        run: echo "path=$(ls PulseView-*.dmg | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload DMG + commit manifest as build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PulseView-macos-arm64
+          path: |
+            PulseView-*.dmg
+            BUILT_COMMITS.txt
+          if-no-files-found: error
+
+      - name: Publish release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" "${{ steps.dmg.outputs.path }}" \
+            --title "PulseView ${GITHUB_REF_NAME} (macOS arm64)" \
+            --notes $'Native Apple Silicon build of PulseView + sigrok.\n\nAd-hoc signed (not notarized): on first launch right-click the app -> Open, or run `xattr -dr com.apple.quarantine PulseView.app`.' \
+          || gh release upload "${GITHUB_REF_NAME}" "${{ steps.dmg.outputs.path }}" --clobber
