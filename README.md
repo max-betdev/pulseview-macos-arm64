@@ -128,6 +128,21 @@ runner** (`macos-14`) and uploads the `.dmg`:
 Note: macOS runner minutes bill at a higher rate on **private** repos, but are
 **free on public** repos — worth keeping in mind for a CI-heavy build like this.
 
+### Simulate the CI build locally first
+
+`scripts/ci-local.sh` runs the CI pipeline against a clean export of the
+committed tree, so you can catch problems before pushing:
+
+```sh
+scripts/ci-local.sh --check   # fast: shell syntax + dependency detection (seconds)
+scripts/ci-local.sh           # full clean build in a temp dir (like CI; slow)
+```
+
+Caveat: it runs on your Mac, which already has the Homebrew dependencies, so it
+can't reproduce *which packages a fresh runner is missing*. `act` doesn't help
+either — it only emulates Linux runners, not macOS. For a fully clean check,
+build in a throwaway macOS VM.
+
 ## Progress and logs
 
 - `PROGRESS.md` — a checklist that the scripts tick off as each step completes.

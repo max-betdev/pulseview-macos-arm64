@@ -47,9 +47,15 @@ xcode-select -p >/dev/null 2>&1 || die "Xcode Command Line Tools missing. Run: x
 log_ok "Xcode Command Line Tools present ($(xcode-select -p))"
 
 # 3) Homebrew formulae.
+# NOTE: use `brew list --versions`, NOT `brew --prefix`. The latter prints a
+# path and exits 0 even for a formula that is not installed, so it cannot tell
+# "installed" from "known but absent" (this silently skipped installing Qt on a
+# clean CI runner).
+is_installed() { brew list --versions "$1" >/dev/null 2>&1; }
+
 missing=()
 for f in "${FORMULAE[@]}"; do
-	if brew --prefix "$f" >/dev/null 2>&1; then
+	if is_installed "$f"; then
 		log_ok "formula present: $f"
 	else
 		log_warn "formula MISSING: $f"
@@ -57,7 +63,7 @@ for f in "${FORMULAE[@]}"; do
 	fi
 done
 for f in "${OPTIONAL[@]}"; do
-	brew --prefix "$f" >/dev/null 2>&1 && log_ok "optional present: $f" || log_warn "optional missing: $f (tests/docs may be skipped)"
+	is_installed "$f" && log_ok "optional present: $f" || log_warn "optional missing: $f (tests/docs may be skipped)"
 done
 
 if [ "${#missing[@]}" -gt 0 ]; then
