@@ -23,9 +23,9 @@ FORMULAE=(
 	libusb libftdi libzip nettle hidapi
 	"$QT_FORMULA" "$PYTHON_FORMULA"
 	sdcc                      # 8051 compiler for sigrok-firmware-fx2lafw
+	doxygen                   # REQUIRED: generates libsigrokcxx's enum bindings
+	check                     # unit-test framework used by 'make check'
 )
-# Optional (tests / docs). Missing ones are only warned about.
-OPTIONAL=( check doxygen )
 
 log "Workspace : $ROOT"
 log "Prefix    : $PREFIX"
@@ -61,9 +61,6 @@ for f in "${FORMULAE[@]}"; do
 		log_warn "formula MISSING: $f"
 		missing+=("$f")
 	fi
-done
-for f in "${OPTIONAL[@]}"; do
-	is_installed "$f" && log_ok "optional present: $f" || log_warn "optional missing: $f (tests/docs may be skipped)"
 done
 
 if [ "${#missing[@]}" -gt 0 ]; then
