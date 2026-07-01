@@ -99,6 +99,44 @@ notarization; that is out of scope here (see [Notes](#notes--limitations)).
 /Applications/PulseView.app/Contents/MacOS/pulseview --version
 ```
 
+## Using your own protocol decoders
+
+libsigrokdecode honors `SIGROKDECODE_DIR` (a single directory) and
+`SIGROKDECODE_PATH` (a colon-separated list). The app's launcher keeps its
+*built-in* decoders on `SIGROKDECODE_DIR` and, if you have already set
+`SIGROKDECODE_DIR` to your own directory, forwards it via `SIGROKDECODE_PATH`
+so both are searched (yours take precedence).
+
+Important macOS caveat: apps launched from **Finder/Dock** (or via `open`) do
+**not** inherit environment variables from your shell, so a `SIGROKDECODE_DIR`
+exported in `~/.zshrc` won't reach the app that way. Pick whichever fits:
+
+- **Launch from a terminal** (inherits your shell environment):
+
+  ```sh
+  SIGROKDECODE_DIR=/path/to/your/decoders /Applications/PulseView.app/Contents/MacOS/pulseview
+  ```
+
+- **Drop decoders in the user data directory** — always searched, no env var,
+  works from Finder:
+
+  ```sh
+  mkdir -p ~/.local/share/libsigrokdecode/decoders
+  # put each decoder in its own subfolder there
+  ```
+
+- **Expose the variable to GUI apps** for the login session, then relaunch:
+
+  ```sh
+  launchctl setenv SIGROKDECODE_DIR /path/to/your/decoders
+  ```
+
+Verify what got picked up:
+
+```sh
+/Applications/PulseView.app/Contents/MacOS/pulseview --version   # lists the decoder search paths
+```
+
 ## Reproducible builds (pinning)
 
 Every build records the exact commit it used for each repository in

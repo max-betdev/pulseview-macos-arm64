@@ -289,15 +289,28 @@ install_wrapper() {
 	mv "$MACOS/$BIN" "$MACOS/$BIN.real"
 	cat > "$MACOS/$BIN" <<'WRAP'
 #!/bin/sh
-# PulseView.app launcher: make the app fully self-contained.
+# PulseView.app launcher: make the app self-contained WITHOUT discarding a
+# user-provided custom decoder directory.
 here="$(cd "$(dirname "$0")" && pwd)"
 contents="$(cd "$here/.." && pwd)"
 export PYTHONHOME="$contents/Frameworks/Python.framework/Versions/__PYVER__"
-export SIGROKDECODE_DIR="$contents/share/libsigrokdecode/decoders"
 export SIGROK_FIRMWARE_DIR="$contents/share/sigrok-firmware"
 # Never write .pyc caches: doing so would modify the (signed) bundle at runtime
 # and invalidate its code signature, which macOS then refuses to launch.
 export PYTHONDONTWRITEBYTECODE=1
+
+# The app ships its own decoders. libsigrokdecode reads SIGROKDECODE_DIR as a
+# single directory and SIGROKDECODE_PATH as a colon-separated list. If the user
+# already set SIGROKDECODE_DIR to their own decoders, keep the app's built-in
+# set on SIGROKDECODE_DIR and forward the user's directory (plus any existing
+# SIGROKDECODE_PATH) via SIGROKDECODE_PATH, so BOTH are searched. libsigrokdecode
+# adds the PATH entries last, so the user's decoders take precedence on clashes.
+_user_srd_dir="$SIGROKDECODE_DIR"
+export SIGROKDECODE_DIR="$contents/share/libsigrokdecode/decoders"
+if [ -n "$_user_srd_dir" ] && [ "$_user_srd_dir" != "$SIGROKDECODE_DIR" ]; then
+	export SIGROKDECODE_PATH="${_user_srd_dir}${SIGROKDECODE_PATH:+:$SIGROKDECODE_PATH}"
+fi
+
 exec "$here/pulseview.real" "$@"
 WRAP
 	sed -i '' "s/__PYVER__/$PYVER/g" "$MACOS/$BIN"
