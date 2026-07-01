@@ -8,6 +8,9 @@ self-contained, ad-hoc-signed `PulseView.app` and a distributable `.dmg`.
 Everything needed to reproduce the build lives in this folder, so the process
 is repeatable on any Apple Silicon Mac.
 
+> [!TIP] 
+> A `.dmg` can be downloaded from the [Actions tab](https://github.com/max-betdev/pulseview-macos-arm64/actions) > Latest workflow run > Artifacts
+
 ## What gets built
 
 From `git master` of each project:
@@ -41,7 +44,7 @@ required**.
 
 `./00-prereqs.sh` installs every other dependency for you.
 
-## Quick start
+## Quick start - Better to just download the artifact from [GitHub Actions](#continuous-integration-github-actions)
 
 ```sh
 ./00-prereqs.sh     # verify/install Homebrew dependencies (native arm64)
